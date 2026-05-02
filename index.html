@@ -1,1 +1,797 @@
-# budget
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>双月预算管家 · 明细汇总版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+        }
+        body {
+            background: #f1f5f9;
+            padding: 20px 16px;
+            color: #0f172a;
+        }
+        .budget-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 1.75rem;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+        /* 三卡片同行，高度一致 */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: #ffffff;
+            border-radius: 1.5rem;
+            padding: 0.9rem 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            border: 1px solid #eef2ff;
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-card.warning-bg {
+            background: #fef9c3;
+            border-left: 5px solid #eab308;
+        }
+        .card-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #475569;
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+        .income-card-flex {
+            display: flex;
+            gap: 0.8rem;
+            align-items: stretch;
+            height: 100%;
+        }
+        .month-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            justify-content: center;
+            min-width: 54px;
+        }
+        .month-btn-vert {
+            background: #f1f5f9;
+            border: none;
+            border-radius: 2rem;
+            padding: 6px 0;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #1e293b;
+            width: 100%;
+        }
+        .month-btn-vert.active {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+        }
+        .income-input-area {
+            flex: 1;
+        }
+        .income-input, .stat-number {
+            font-size: 1.3rem;
+            font-weight: 700;
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.9rem;
+            padding: 6px 10px;
+            background: #fefefe;
+            color: #0f172a;
+            line-height: 1.3;
+            display: block;
+        }
+        .income-input {
+            margin-top: 4px;
+        }
+        .stat-number {
+            margin-top: 0;
+        }
+        .warning-text {
+            font-size: 0.7rem;
+            color: #b45309;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0.2rem 0 1rem 0;
+        }
+        /* 预算分类网格：默认两列 */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        /* 独占一整行的分类 (日常生活 & 娱乐臭美) */
+        .full-width-item {
+            grid-column: 1 / -1;
+        }
+        .budget-item {
+            background: #fefefe;
+            border: 1px solid #e9eef3;
+            border-radius: 1.25rem;
+            padding: 0.8rem 0.9rem;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .cat-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+        .amount-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0 2px;
+        }
+        .amount-wrapper input {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 0.9rem;
+            border: 1.5px solid #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: white;
+        }
+        .composite-amount {
+            flex: 1;
+            background: #f8fafc;
+            padding: 8px 10px;
+            border-radius: 0.9rem;
+            border: 1.5px solid #e2e8f0;
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 0.9rem;
+        }
+        .warning-input {
+            border-color: #dc2626 !important;
+            background-color: #fff5f5 !important;
+        }
+        .btn-icon {
+            background: #eef2ff;
+            border: none;
+            border-radius: 2rem;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eef2ff;
+        }
+        .btn {
+            border: none;
+            padding: 8px 18px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            background: #f1f5f9;
+            color: #1f2937;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        .btn-copy {
+            background: #0f172a;
+            color: white;
+        }
+        .btn-reset {
+            background: #f1f5f9;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+        footer {
+            font-size: 0.65rem;
+            text-align: center;
+            color: #94a3b8;
+            margin-top: 20px;
+        }
+        @media (max-width: 640px) {
+            .categories-grid {
+                gap: 0.7rem;
+            }
+            .budget-item {
+                padding: 0.7rem;
+            }
+            .income-input, .stat-number {
+                font-size: 1rem;
+                padding: 5px 8px;
+            }
+            .month-btn-vert {
+                font-size: 0.7rem;
+                padding: 4px 0;
+            }
+            .card-label {
+                font-size: 0.7rem;
+            }
+        }
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top:0; left:0;
+            width:100%; height:100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 1.8rem;
+            width: 90%;
+            max-width: 540px;
+            padding: 1.5rem;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .subitem-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .subitem-name {
+            flex: 2;
+            padding: 6px 10px;
+            border-radius: 1rem;
+            border: 1px solid #cbd5e1;
+        }
+        .subitem-amount {
+            flex: 1;
+            padding: 6px 10px;
+            border-radius: 1rem;
+            border: 1px solid #cbd5e1;
+        }
+        .delete-sub {
+            background: #fee2e2;
+            border: none;
+            border-radius: 2rem;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="budget-container" id="appRoot">
+    <!-- 三卡片同行 -->
+    <div class="cards-grid">
+        <div class="stat-card">
+            <div class="income-card-flex">
+                <div class="month-vertical" id="monthSwitchVertical">
+                    <button class="month-btn-vert" data-month="current" id="monthCurrentBtn">5月</button>
+                    <button class="month-btn-vert" data-month="next" id="monthNextBtn">6月</button>
+                </div>
+                <div class="income-input-area">
+                    <div class="card-label">?? 当月总收入</div>
+                    <input type="number" id="totalIncomeInput" class="income-input" step="1" value="0" placeholder="0">
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="card-label">?? 总分配预算</div>
+            <div class="stat-number" id="totalBudgetDisplay">￥0</div>
+        </div>
+        <div class="stat-card" id="balanceCard">
+            <div class="card-label">?? 预计余额</div>
+            <div class="stat-number" id="expectBalanceDisplay">￥0</div>
+            <div id="balanceWarningMsg" class="warning-text"></div>
+        </div>
+    </div>
+
+    <div class="section-title">?? 预算分类配置</div>
+    <div class="categories-grid" id="categoriesContainer"></div>
+
+    <div class="action-buttons">
+        <button class="btn btn-primary" id="saveBtn">?? 保存当前月份预算</button>
+        <button class="btn btn-reset" id="resetBtn">??? 重置当前月份预算</button>
+        <button class="btn btn-copy" id="copyToNextBtn">?? 一键复制 → 下个月</button>
+    </div>
+    <footer>? 房租/房贷无额度限制；其他分类金额超过2000元时输入框自动变红预警（无文字提示）。<br>? “日常生活”和“娱乐臭美”支持子项明细，点击“明细”按钮管理。</footer>
+</div>
+
+<!-- 子项管理弹窗 -->
+<div id="subItemModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">管理子项</h3>
+        <div id="subItemsList" style="margin: 16px 0;"></div>
+        <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
+            <input type="text" id="newSubName" placeholder="子项名称" style="flex:2; padding:8px; border-radius:1rem; border:1px solid #ccc;">
+            <input type="number" id="newSubAmount" placeholder="金额" step="1" style="flex:1; padding:8px; border-radius:1rem; border:1px solid #ccc;">
+            <button id="addSubItemBtn" class="btn-primary btn" style="padding: 0 14px;">? 添加</button>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button id="closeSubModal" class="btn">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- 新版分类定义 ----------
+    // 顺序: 日常生活(独占行), 娱乐臭美(独占行), 房租, 水电&话费(合并), 略略费, 通勤出行
+    const CATEGORIES = [
+        { id: "dailyLife", label: "?? 日常生活", type: "composite", exemptLimit: false, compositeKey: "daily_life" },
+        { id: "beautyFun", label: "?? 娱乐臭美", type: "composite", exemptLimit: false, compositeKey: "beauty_fun" },
+        { id: "rent", label: "?? 房租/房贷", type: "normal", exemptLimit: true, defaultVal: 0 },
+        { id: "utilities", label: "?? 水电&话费", type: "normal", exemptLimit: false, defaultVal: 0 },   // 合并水电费+话费
+        { id: "luelue", label: "?? 略略费", type: "normal", exemptLimit: false, defaultVal: 0 },
+        { id: "traffic", label: "?? 通勤出行", type: "normal", exemptLimit: false, defaultVal: 0 }
+    ];
+
+    // 存储结构
+    let storage = {
+        current: { income: 0, normalBudgets: {}, subItems: { daily_life: [], beauty_fun: [] } },
+        next: { income: 0, normalBudgets: {}, subItems: { daily_life: [], beauty_fun: [] } }
+    };
+    let activeMonth = 'current';
+    let currentCompositeEditing = null;
+
+    // DOM 元素
+    let totalIncomeInput;
+    let totalBudgetSpan, expectSpan, balanceCardDiv, balanceWarningMsgSpan;
+    let categoriesContainer;
+
+    // 辅助: 获取当前真实月份文字
+    function getRealMonthNames() {
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        let nextMonth = currentMonth + 1;
+        if (nextMonth > 12) nextMonth = 1;
+        return { currentMonth: `${currentMonth}月`, nextMonth: `${nextMonth}月` };
+    }
+
+    function updateMonthButtonText() {
+        const { currentMonth, nextMonth } = getRealMonthNames();
+        const curBtn = document.getElementById('monthCurrentBtn');
+        const nextBtn = document.getElementById('monthNextBtn');
+        if (curBtn) curBtn.innerText = currentMonth;
+        if (nextBtn) nextBtn.innerText = nextMonth;
+    }
+
+    // 数据迁移：旧版有 waterElec 和 phoneFee，合并为 utilities，并删除旧字段
+    function migrateOldData(monthData) {
+        let changed = false;
+        if (monthData.normalBudgets.waterElec !== undefined || monthData.normalBudgets.phoneFee !== undefined) {
+            let water = monthData.normalBudgets.waterElec || 0;
+            let phone = monthData.normalBudgets.phoneFee || 0;
+            monthData.normalBudgets.utilities = Math.floor(water + phone);
+            delete monthData.normalBudgets.waterElec;
+            delete monthData.normalBudgets.phoneFee;
+            changed = true;
+        }
+        // 确保新的复合分类子项存在
+        if (!monthData.subItems.daily_life) monthData.subItems.daily_life = [];
+        if (!monthData.subItems.beauty_fun) monthData.subItems.beauty_fun = [];
+        // 删除旧的无用分类字段（如果有购物穿搭等，但不需要额外处理）
+        return changed;
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem("budget_system_v8");
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.current) storage.current = parsed.current;
+                if (parsed.next) storage.next = parsed.next;
+            } catch(e) {}
+        }
+        // 初始化基础字段
+        if (!storage.current.normalBudgets) storage.current.normalBudgets = {};
+        if (!storage.current.subItems) storage.current.subItems = { daily_life: [], beauty_fun: [] };
+        if (!storage.next.normalBudgets) storage.next.normalBudgets = {};
+        if (!storage.next.subItems) storage.next.subItems = { daily_life: [], beauty_fun: [] };
+
+        // 迁移旧数据（合并水电+话费）
+        migrateOldData(storage.current);
+        migrateOldData(storage.next);
+
+        // 为新分类设置默认值0
+        CATEGORIES.forEach(cat => {
+            if (cat.type === 'normal') {
+                if (storage.current.normalBudgets[cat.id] === undefined) storage.current.normalBudgets[cat.id] = 0;
+                if (storage.next.normalBudgets[cat.id] === undefined) storage.next.normalBudgets[cat.id] = 0;
+            }
+        });
+        if (storage.current.income === undefined) storage.current.income = 0;
+        if (storage.next.income === undefined) storage.next.income = 0;
+        saveToLocalStorage(); // 保存迁移后的干净数据
+    }
+
+    function saveToLocalStorage() {
+        localStorage.setItem("budget_system_v8", JSON.stringify({
+            current: storage.current,
+            next: storage.next
+        }));
+    }
+
+    function getCurrentMonthData() {
+        return activeMonth === 'current' ? storage.current : storage.next;
+    }
+
+    // 计算复合分类总和（整数）
+    function calcCompositeTotal(subItemsArray) {
+        if (!subItemsArray || !subItemsArray.length) return 0;
+        let sum = 0;
+        for (let item of subItemsArray) {
+            let amt = parseFloat(item.amount);
+            if (isNaN(amt)) amt = 0;
+            sum += amt;
+        }
+        return Math.floor(sum);
+    }
+
+    function getAllBudgetsMap() {
+        const monthData = getCurrentMonthData();
+        const map = {};
+        CATEGORIES.forEach(cat => {
+            if (cat.type === 'normal') {
+                let val = monthData.normalBudgets[cat.id] || 0;
+                map[cat.id] = Math.floor(val);
+            } else {
+                const subList = monthData.subItems[cat.compositeKey] || [];
+                map[cat.id] = calcCompositeTotal(subList);
+            }
+        });
+        return map;
+    }
+
+    function calcTotalBudget() {
+        const map = getAllBudgetsMap();
+        let total = 0;
+        CATEGORIES.forEach(cat => { total += map[cat.id]; });
+        return Math.floor(total);
+    }
+
+    // 更新顶部卡片
+    function updateDashboard(incomeValue, totalBudget) {
+        const displayIncome = Math.floor(incomeValue);
+        totalBudgetSpan.innerText = `￥${Math.floor(totalBudget)}`;
+        const remainAlloc = displayIncome - totalBudget;
+        const expectBalance = remainAlloc;
+        expectSpan.innerText = `￥${Math.floor(expectBalance)}`;
+        if (expectBalance < 0) {
+            balanceCardDiv.classList.add("warning-bg");
+            balanceWarningMsgSpan.innerHTML = "?? 预算超支，入不敷出";
+        } else {
+            balanceCardDiv.classList.remove("warning-bg");
+            balanceWarningMsgSpan.innerHTML = "";
+        }
+    }
+
+    // 预警样式 (仅标红)
+    function applyWarningStyle(cat, amount, inputElement, isCompositeDiv = false) {
+        if (cat.exemptLimit) {
+            if (inputElement) inputElement.classList.remove("warning-input");
+            return;
+        }
+        if (amount > 2000) {
+            if (inputElement) inputElement.classList.add("warning-input");
+        } else {
+            if (inputElement) inputElement.classList.remove("warning-input");
+        }
+    }
+
+    // 渲染分类列表（日常生活 & 娱乐臭美 独占一行，其余正常两列）
+    function renderCategoriesList() {
+        if (!categoriesContainer) return;
+        const monthData = getCurrentMonthData();
+        let html = '';
+        CATEGORIES.forEach(cat => {
+            let amount = 0;
+            const isComposite = (cat.type === 'composite');
+            if (isComposite) {
+                const subList = monthData.subItems[cat.compositeKey] || [];
+                amount = calcCompositeTotal(subList);
+            } else {
+                amount = monthData.normalBudgets[cat.id] || 0;
+            }
+            // 判断是否需要独占一行：日常生活 或 娱乐臭美
+            const fullWidth = (cat.id === 'dailyLife' || cat.id === 'beautyFun');
+            const widthClass = fullWidth ? 'full-width-item' : '';
+            html += `
+                <div class="budget-item ${widthClass}" data-cat-id="${cat.id}">
+                    <div class="item-header">
+                        <span class="cat-name">${cat.label}</span>
+                    </div>
+                    <div class="amount-wrapper">
+                        ${!isComposite ? 
+                            `<input type="number" step="1" id="input_${cat.id}" class="budget-input" value="${Math.floor(amount)}" placeholder="0">` : 
+                            `<div class="composite-amount" id="composite_display_${cat.id}">￥ ${Math.floor(amount)}</div>
+                             <button class="btn-icon" data-composite="${cat.id}" id="manage_${cat.id}">?? 明细</button>`
+                        }
+                    </div>
+                </div>
+            `;
+        });
+        categoriesContainer.innerHTML = html;
+
+        // 绑定事件与预警样式
+        CATEGORIES.forEach(cat => {
+            if (cat.type === 'normal') {
+                const inputEl = document.getElementById(`input_${cat.id}`);
+                if (inputEl) {
+                    let currentVal = parseFloat(inputEl.value) || 0;
+                    applyWarningStyle(cat, currentVal, inputEl);
+                    inputEl.addEventListener('input', (e) => {
+                        let val = parseFloat(e.target.value);
+                        if (isNaN(val)) val = 0;
+                        if (val < 0) val = 0;
+                        val = Math.floor(val);
+                        e.target.value = val;
+                        applyWarningStyle(cat, val, inputEl);
+                        const newIncome = parseFloat(totalIncomeInput.value) || 0;
+                        const totalBud = calcTotalBudget();
+                        updateDashboard(newIncome, totalBud);
+                    });
+                }
+            } else {
+                const displayDiv = document.getElementById(`composite_display_${cat.id}`);
+                const manageBtn = document.getElementById(`manage_${cat.id}`);
+                const subList = monthData.subItems[cat.compositeKey] || [];
+                const compositeAmount = calcCompositeTotal(subList);
+                if (displayDiv) displayDiv.innerText = `￥ ${compositeAmount}`;
+                if (displayDiv) applyWarningStyle(cat, compositeAmount, displayDiv, true);
+                if (manageBtn) {
+                    manageBtn.addEventListener('click', () => {
+                        openSubItemModal(cat.id, cat.compositeKey, cat.label);
+                    });
+                }
+            }
+        });
+    }
+
+    // 子项管理弹窗
+    function openSubItemModal(catId, compositeKey, label) {
+        currentCompositeEditing = { catId, compositeKey, label };
+        const container = document.getElementById('subItemsList');
+        document.getElementById('modalTitle').innerText = `?? 管理「${label}」子项`;
+        
+        function renderSubList() {
+            const currentItems = getCurrentMonthData().subItems[compositeKey] || [];
+            let listHtml = '';
+            currentItems.forEach((item, idx) => {
+                listHtml += `
+                    <div class="subitem-row" data-idx="${idx}">
+                        <input type="text" class="subitem-name" value="${escapeHtml(item.name)}" data-field="name" data-idx="${idx}">
+                        <input type="number" step="1" class="subitem-amount" value="${Math.floor(item.amount)}" data-field="amount" data-idx="${idx}">
+                        <button class="delete-sub" data-idx="${idx}">??? 删除</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = listHtml || '<div style="color:#888;">暂无子项，点击下方添加</div>';
+            
+            document.querySelectorAll('.subitem-name').forEach(inp => {
+                inp.addEventListener('change', (e) => {
+                    const idx = parseInt(inp.dataset.idx);
+                    const newName = inp.value.trim() || "未命名";
+                    const month = getCurrentMonthData();
+                    if (month.subItems[compositeKey] && month.subItems[compositeKey][idx]) {
+                        month.subItems[compositeKey][idx].name = newName;
+                        saveToLocalStorage();
+                        refreshUIBasic();
+                        renderSubList();
+                    }
+                });
+            });
+            document.querySelectorAll('.subitem-amount').forEach(inp => {
+                inp.addEventListener('change', (e) => {
+                    let val = parseFloat(inp.value);
+                    if (isNaN(val)) val = 0;
+                    if (val < 0) val = 0;
+                    val = Math.floor(val);
+                    inp.value = val;
+                    const idx = parseInt(inp.dataset.idx);
+                    const month = getCurrentMonthData();
+                    if (month.subItems[compositeKey] && month.subItems[compositeKey][idx]) {
+                        month.subItems[compositeKey][idx].amount = val;
+                        saveToLocalStorage();
+                        refreshUIBasic();
+                        renderSubList();
+                    }
+                });
+            });
+            document.querySelectorAll('.delete-sub').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.dataset.idx);
+                    const month = getCurrentMonthData();
+                    if (month.subItems[compositeKey]) {
+                        month.subItems[compositeKey].splice(idx, 1);
+                        saveToLocalStorage();
+                        refreshUIBasic();
+                        renderSubList();
+                    }
+                });
+            });
+        }
+        renderSubList();
+
+        const addBtn = document.getElementById('addSubItemBtn');
+        const newNameInput = document.getElementById('newSubName');
+        const newAmountInput = document.getElementById('newSubAmount');
+        const addHandler = () => {
+            let name = newNameInput.value.trim();
+            if (!name) name = "新子项";
+            let amount = parseFloat(newAmountInput.value);
+            if (isNaN(amount)) amount = 0;
+            if (amount < 0) amount = 0;
+            amount = Math.floor(amount);
+            const monthDataRef = getCurrentMonthData();
+            if (!monthDataRef.subItems[compositeKey]) monthDataRef.subItems[compositeKey] = [];
+            monthDataRef.subItems[compositeKey].push({ id: Date.now() + Math.random(), name: name, amount: amount });
+            saveToLocalStorage();
+            refreshUIBasic();
+            renderSubList();
+            newNameInput.value = '';
+            newAmountInput.value = '';
+        };
+        addBtn.onclick = addHandler;
+        document.getElementById('subItemModal').style.display = 'flex';
+        const closeModal = () => {
+            document.getElementById('subItemModal').style.display = 'none';
+            addBtn.onclick = null;
+        };
+        document.getElementById('closeSubModal').onclick = closeModal;
+        window.onclick = (e) => { if (e.target === document.getElementById('subItemModal')) closeModal(); };
+    }
+    
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    function refreshUIBasic() {
+        const monthData = getCurrentMonthData();
+        totalIncomeInput.value = Math.floor(monthData.income);
+        renderCategoriesList();
+        const totalBud = calcTotalBudget();
+        const incomeVal = parseFloat(totalIncomeInput.value) || 0;
+        updateDashboard(incomeVal, totalBud);
+    }
+
+    function saveCurrentMonth() {
+        const monthData = getCurrentMonthData();
+        let income = parseFloat(totalIncomeInput.value);
+        if (isNaN(income)) income = 0;
+        monthData.income = Math.floor(income);
+        CATEGORIES.forEach(cat => {
+            if (cat.type === 'normal') {
+                const inp = document.getElementById(`input_${cat.id}`);
+                if (inp) {
+                    let val = parseFloat(inp.value);
+                    if (isNaN(val)) val = 0;
+                    monthData.normalBudgets[cat.id] = Math.floor(val);
+                }
+            }
+        });
+        saveToLocalStorage();
+        alert(`? ${activeMonth === 'current' ? '当月' : '下个月'} 预算已保存`);
+        refreshUIBasic();
+    }
+
+    function resetCurrentMonth() {
+        if (!confirm(`?? 重置将清空当前${activeMonth === 'current' ? '当月' : '下个月'}所有预算（总收入归零，复合分类子项全部清空），是否继续？`)) return;
+        const monthData = getCurrentMonthData();
+        monthData.income = 0;
+        CATEGORIES.forEach(cat => {
+            if (cat.type === 'normal') {
+                monthData.normalBudgets[cat.id] = 0;
+            } else {
+                monthData.subItems[cat.compositeKey] = [];
+            }
+        });
+        saveToLocalStorage();
+        refreshUIBasic();
+    }
+
+    function copyCurrentToNext() {
+        saveCurrentMonth();
+        storage.next.income = storage.current.income;
+        storage.next.normalBudgets = JSON.parse(JSON.stringify(storage.current.normalBudgets));
+        storage.next.subItems = JSON.parse(JSON.stringify(storage.current.subItems));
+        saveToLocalStorage();
+        if (activeMonth === 'next') refreshUIBasic();
+        alert("? 已将「当月」所有预算（含日常生活/娱乐臭美子项）复制到下个月。");
+    }
+
+    // 当月收入自动同步到下个月
+    function bindAutoSyncIncome() {
+        totalIncomeInput.addEventListener('change', (e) => {
+            if (activeMonth === 'current') {
+                let val = parseFloat(totalIncomeInput.value);
+                if (isNaN(val)) val = 0;
+                val = Math.floor(val);
+                storage.next.income = val;
+                saveToLocalStorage();
+            }
+        });
+    }
+
+    function bindIncomeRealtime() {
+        totalIncomeInput.addEventListener('input', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 0;
+            if (val < 0) val = 0;
+            val = Math.floor(val);
+            e.target.value = val;
+            const totalBud = calcTotalBudget();
+            updateDashboard(val, totalBud);
+        });
+    }
+
+    function switchMonth(monthTarget) {
+        if (monthTarget === activeMonth) return;
+        saveCurrentMonth();
+        activeMonth = monthTarget;
+        refreshUIBasic();
+        const curBtn = document.getElementById('monthCurrentBtn');
+        const nextBtn = document.getElementById('monthNextBtn');
+        if (curBtn && nextBtn) {
+            if (activeMonth === 'current') {
+                curBtn.classList.add('active');
+                nextBtn.classList.remove('active');
+            } else {
+                nextBtn.classList.add('active');
+                curBtn.classList.remove('active');
+            }
+        }
+    }
+
+    function init() {
+        totalIncomeInput = document.getElementById('totalIncomeInput');
+        totalBudgetSpan = document.getElementById('totalBudgetDisplay');
+        expectSpan = document.getElementById('expectBalanceDisplay');
+        balanceCardDiv = document.getElementById('balanceCard');
+        balanceWarningMsgSpan = document.getElementById('balanceWarningMsg');
+        categoriesContainer = document.getElementById('categoriesContainer');
+        updateMonthButtonText();
+        loadFromLocalStorage();
+        refreshUIBasic();
+        bindIncomeRealtime();
+        bindAutoSyncIncome();
+        document.getElementById('monthCurrentBtn').addEventListener('click', () => switchMonth('current'));
+        document.getElementById('monthNextBtn').addEventListener('click', () => switchMonth('next'));
+        document.getElementById('saveBtn').addEventListener('click', saveCurrentMonth);
+        document.getElementById('resetBtn').addEventListener('click', resetCurrentMonth);
+        document.getElementById('copyToNextBtn').addEventListener('click', copyCurrentToNext);
+        const curBtn = document.getElementById('monthCurrentBtn');
+        const nextBtn = document.getElementById('monthNextBtn');
+        if (activeMonth === 'current') curBtn.classList.add('active');
+        else nextBtn.classList.add('active');
+    }
+    init();
+</script>
+</body>
+</html>
